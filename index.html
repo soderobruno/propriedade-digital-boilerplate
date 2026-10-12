@@ -19,9 +19,61 @@
             width: 100%;
             height: 100vh;
         }
+        /* Painel Lateral / Menu de Camadas */
+        .sidebar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 300px;
+            height: 100%;
+            background: #ffffff;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar-header {
+            background: #2d3b2d;
+            color: white;
+            padding: 20px;
+        }
+        .sidebar-header h2 {
+            margin: 0;
+            font-size: 1.2rem;
+        }
+        .sidebar-header p {
+            margin: 5px 0 0 0;
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+        .sidebar-content {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .sidebar-content h3 {
+            font-size: 0.9rem;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+            letter-spacing: 0.5px;
+        }
+        .layer-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+            color: #333;
+            cursor: pointer;
+        }
+        .layer-item input {
+            margin-right: 10px;
+            transform: scale(1.1);
+        }
+        /* Botão GPS */
         .leaflet-control-gps {
             background: white;
-            padding: 5px 10px;
+            padding: 6px 12px;
             font-weight: bold;
             cursor: pointer;
             box-shadow: 0 1px 5px rgba(0,0,0,0.65);
@@ -35,16 +87,44 @@
         .leaflet-control-gps:hover {
             background: #f4f4f4;
         }
+        /* Responsividade para telemóveis */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                max-height: 35vh;
+                position: relative;
+            }
+            #map {
+                height: 65vh;
+            }
+        }
     </style>
 </head>
 <body>
+
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>Propriedade Digital</h2>
+            <p>Work Drones Geo</p>
+        </div>
+        <div class="sidebar-content">
+            <h3>Camadas do Projeto</h3>
+            <label class="layer-item"><input type="checkbox" id="layer-orto"> Ortomosaico HD</label>
+            <label class="layer-item"><input type="checkbox" id="layer-limite"> Limite da Propriedade / Talhões</label>
+            <label class="layer-item"><input type="checkbox" id="layer-ambiental"> Mapa Ambiental (APP / RL)</label>
+            <label class="layer-item"><input type="checkbox" id="layer-mdt"> MDT (Modelo Digital de Terreno)</label>
+            <label class="layer-item"><input type="checkbox" id="layer-declividade"> Declividade</label>
+            <label class="layer-item"><input type="checkbox" id="layer-curvas"> Curvas de Nível</label>
+        </div>
+    </div>
 
     <div id="map"></div>
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Inicializar o mapa centrado numa localização padrão (ex: Teresópolis / Região)
+        // Inicializar o mapa centrado
         const map = L.map('map').setView([-22.412, -42.965], 14);
 
         // Camada base do OpenStreetMap
