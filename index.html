@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Propriedade Digital | Geoportal</title>
+    
+    <!-- Configuração PWA (Manifest e Tema mobile) -->
+    <meta name="theme-color" content="#1b4332">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background-color: #f4f6f8; }
+
+        /* Layout Principal */
+        #app-container { display: flex; width: 100vw; height: 100vh; position: relative; }
+        
+        /* Painel Lateral */
+        #sidebar {
+            width: 320px;
+            height: 100%;
+            background: #ffffff;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+        }
+        .sidebar-header {
+            padding: 20px;
+            background: #1b4332;
+            color: white;
+        }
+        .sidebar-header h2 { font-size: 1.1rem; margin-bottom: 4px; }
+        .sidebar-header p { font-size: 0.85rem; color: #a3b18a; }
+        
+        .sidebar-content {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .section-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #6c757d;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        .layer-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+            color: #333;
+            cursor: pointer;
+        }
+        .layer-item input { margin-right: 10px; width: 18px; height: 18px; accent-color: #2d6a4f; }
+
+        /* Mapa */
+        #map { flex: 1; height: 100%; z-index: 1; }
+
+        /* Botão Flutuante de GPS */
+        #btn-gps {
+            position: absolute;
+            bottom: 30px;
+            right: 20px;
+            width: 55px;
+            height: 55px;
+            background: #ffffff;
+            border: none;
+            border-radius: 50%;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        #btn-gps svg { width: 24px; height: 24px; fill: #2d6a4f; }
+        #btn-gps.ativo { background: #2d6a4f; }
+        #btn-gps.ativo svg { fill: #ffffff; }
+
+        /* Marcador de GPS com efeito de pulso em campo */
+        .gps-marker-pulse {
+            position: relative;
+            width: 20px;
+            height: 20px;
+        }
+        .gps-marker-pulse .dot {
+            width: 16px;
+            height: 16px;
+            background: #0077b6;
+            border: 3px solid #ffffff;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+            position: absolute;
+            top: 2px;
+            left: 2px;
+        }
+
+        /* Responsividade para Celular */
+        @media (max-width: 768px) {
+            #sidebar {
+                position: absolute;
+                transform: translateX(-100%); /* Escondido por padrão no mobile para dar espaço ao mapa */
+            }
+            #sidebar.open {
+                transform: translateX(0);
+            }
+            /* Botão de alternar painel no mobile */
+            #toggle-sidebar {
+                position: absolute;
+                top: 15px;
+                left: 15px;
+                z-index: 1001;
+                background: white;
+                border: none;
+                padding: 10px 14px;
+                border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                font-weight: bold;
+                color: #1b4332;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        <!-- Botão Mobile para abrir menu -->
+        <button id="toggle-sidebar" onclick="toggleSidebar()">Menu</button>
+
+        <!-- Painel Lateral -->
+        <div id="sidebar">
+            <div class="sidebar-header">
+                <h2>Propriedade Digital</h2>
+                <p>Work Drones Geo</p>
+            </div>
+            <div class="sidebar-content">
+                <div class="section-title">Camadas do Projeto</div>
+                
+                <label class="layer-item">
+                    <input type="checkbox" checked onchange="toggleLayer('orto', this)"> Ortomosaico HD
+                </label>
+                <label class="layer-item">
+                    <input type="checkbox" checked onchange="toggleLayer('limite', this)"> Limite da Propriedade / Talhões
+                </label>
+                <label class="layer-item">
+                    <input type="checkbox" onchange="toggleLayer('ambiental', this)"> Mapa Ambiental (APP / RL)
+                </label>
+                <label class="layer-item">
+                    <input type="checkbox" onchange="toggleLayer('mdt', this)"> MDT (Modelo Digital de Terreno)
+                </label>
+                <label class="layer-item">
+                    <input type="checkbox" onchange="toggleLayer('declividade', this)"> Declividade
+                </label>
+                <label class="layer-item">
+                    <input type="checkbox" checked onchange="toggleLayer('curvas', this)"> Curvas de Nível
+                </label>
+            </div>
+        </div>
+
+        <!-- Mapa -->
+        <div id="map"></div>
+
+        <!-- Botão Flutuante de GPS em Campo -->
+        <button id="btn-gps" onclick="toggleGPS()" title="Ativar GPS">
+            <svg viewBox="0 0 24 24">
+                <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <script>
+        // 1. Inicialização do Mapa (Centro padrão inicial)
+        const map = L.map('map', { zoomControl: false }).setView([-22.45, -42.98], 15);
+
+        // Adiciona controle de zoom em posição melhor para mobile
+        L.control.zoom({ position: 'topright' }).addTo(map);
+
+        // Mapa Base de Fundo (OpenStreetMap limpo)
+        const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 22,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        // 2. Simulação de Camadas (Aqui entrarão seus Rasters e Vetores)
+        // Dica: No seu fluxo real, você adicionará suas camadas WMS, COGs ou GeoJSON aqui.
+        const camadas = {
+            // orto: L.tileLayer(...)
+            // limite: L.geoJson(...)
+        };
+
+        function toggleLayer(nome, elemento) {
+            // Lógica para ligar/desligar camadas no mapa
+            console.log(`Camada ${nome} alterada para: ${elemento.checked}`);
+        }
+
+        // 3. Controle do Menu Mobile
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+
+        // 4. Lógica Robusta de GPS Integrado para Campo
+        let markerGPS = null;
+        let watchID = null;
+
+        function toggleGPS() {
+            if (!navigator.geolocation) {
+                alert("Seu navegador ou dispositivo não suporta geolocalização.");
+                return;
+            }
+
+            const btnGPS = document.getElementById("btn-gps");
+
+            if (watchID) {
+                // Desliga o rastreio
+                navigator.geolocation.clearWatch(watchID);
+                watchID = null;
+                if (markerGPS) {
+                    map.removeLayer(markerGPS);
+                    markerGPS = null;
+                }
+                btnGPS.classList.remove("ativo");
+                return;
+            }
+
+            // Liga o rastreio em tempo real com alta precisão para o campo
+            btnGPS.classList.add("ativo");
+            
+            watchID = navigator.geolocation.watchPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    const latLng = [lat, lng];
+
+                    if (!markerGPS) {
+                        markerGPS = L.marker(latLng, {
+                            icon: L.divIcon({
+                                className: 'gps-marker-pulse',
+                                html: '<div class="dot"></div>',
+                                iconSize: [20, 20]
+                            })
+                        }).addTo(map).bindPopup("Você está aqui (GPS)").openPopup();
+                    } else {
+                        markerGPS.setLatLng(latLng);
+                    }
+
+                    // Centraliza o mapa automaticamente na posição do operador em campo
+                    map.setView(latLng, 18);
+                },
+                (error) => {
+                    console.error("Erro de GPS:", error.message);
+                    alert("Erro ao capturar o sinal do GPS. Verifique se a localização está ativada no celular.");
+                    btnGPS.classList.remove("ativo");
+                    watchID = null;
+                },
+                {
+                    enableHighAccuracy: true, // Força uso do chip GPS do celular
+                    maximumAge: 0,
+                    timeout: 15000
+                }
+            );
+        }
+    </script>
+</body>
+</html>
